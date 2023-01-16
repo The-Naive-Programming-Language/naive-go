@@ -12,33 +12,57 @@ import (
 
 var _ ast.Visitor = (*Interpreter)(nil)
 
-type Env map[string]any
-
-func newEnv() Env {
-	return make(Env)
+type Env struct {
+	bindings  map[string]any
+	enclosing *Env
 }
 
-func (e Env) Define(k string, v any) (shadow bool) {
-	_, shadow = e[k]
-	e[k] = v
+func newGlobalEnv() *Env {
+	return newLocalEnv(nil)
+}
+
+func newLocalEnv(enclosing *Env) *Env {
+	return &Env{
+		bindings:  make(map[string]any),
+		enclosing: enclosing,
+	}
+}
+
+func (e *Env) Define(k string, v any) (shadow bool) {
+	_, shadow = e.bindings[k]
+	e.bindings[k] = v
 	return
 }
 
-func (e Env) Lookup(k string) (v any, present bool) {
-	v, present = e[k]
-	return v, present
+func (e *Env) Lookup(k string) (v any, present bool) {
+	curr := e
+	for curr != nil {
+		v, present = curr.bindings[k]
+		if present {
+			return v, present
+		}
+		curr = curr.enclosing
+	}
+	return nil, false
 }
 
-func (e Env) Assign(k string, v any) (create bool) {
-	_, present := e[k]
-	e[k] = v
-	return !present
+func (e *Env) Assign(k string, v any) (done bool) {
+	curr := e
+	for curr != nil {
+		_, present := curr.bindings[k]
+		if present {
+			curr.bindings[k] = v
+			return true
+		}
+		curr = curr.enclosing
+	}
+	return false
 }
 
 type Interpreter struct {
 	P *parser.Parser
 
-	env Env
+	env *Env
 }
 
 func New(filename string, src []byte) *Interpreter {
@@ -47,7 +71,7 @@ func New(filename string, src []byte) *Interpreter {
 			token.NewFile(filename),
 			src,
 		),
-		env: newEnv(),
+		env: newGlobalEnv(),
 	}
 }
 
@@ -57,7 +81,7 @@ func Default() *Interpreter {
 
 func (i *Interpreter) Interpret() {
 	i.P.Parse()
-	fmt.Println(i.P.Statements)
+	// fmt.Println(i.P.Statements)
 	for _, stmt := range i.P.Statements {
 		stmt.Accept(i)
 	}
@@ -413,7 +437,9 @@ func (i *Interpreter) VisitDeclStmt(stmt *ast.DeclStmt) any {
 
 func (i *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) any {
 	v := stmt.Expr.Accept(i)
-	i.env.Assign(stmt.Ident, v)
+	if !i.env.Assign(stmt.Ident, v) {
+		panic("assignment to undefined variable " + stmt.Ident)
+	}
 	return nil
 }
 
@@ -441,5 +467,17 @@ func (i *Interpreter) VisitPrintStmt(stmt *ast.PrintStmt) any {
 }
 
 func (i *Interpreter) VisitEmptyStmt(stmt *ast.EmptyStmt) any {
+	return nil
+}
+
+func (i *Interpreter) VisitBlock(blk *ast.Block) any {
+	outer := i.env
+	i.env = newLocalEnv(outer)
+	defer func() {
+		i.env = outer
+	}()
+	for _, stmt := range blk.Statements {
+		stmt.Accept(i)
+	}
 	return nil
 }

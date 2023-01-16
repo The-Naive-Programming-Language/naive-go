@@ -28,6 +28,8 @@ var (
 	_ Expr = (*BinaryExpr)(nil)
 	_ Expr = (*UnaryExpr)(nil)
 	_ Expr = (*GroupingExpr)(nil)
+
+	_ Expr = (*Block)(nil)
 )
 
 type IntegerValue struct {
@@ -216,3 +218,23 @@ func (ve *Variable) String() string {
 }
 
 func (*Variable) exprNode() {}
+
+type Block struct {
+	Statements []Stmt
+}
+
+func (blk *Block) Accept(v Visitor) any {
+	return v.VisitBlock(blk)
+}
+
+func (blk *Block) String() string {
+	ss := make([]string, 0, len(blk.Statements))
+	for _, stmt := range blk.Statements {
+		ss = append(ss, stmt.String())
+	}
+	return "{" + strings.Join(ss, "; ") + "}"
+}
+
+func (*Block) exprNode() {}
+
+func (*Block) stmtNode() {}

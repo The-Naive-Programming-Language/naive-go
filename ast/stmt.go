@@ -17,6 +17,8 @@ var (
 	_ Stmt = (*ExprStmt)(nil)
 	_ Stmt = (*PrintStmt)(nil)
 	_ Stmt = (*EmptyStmt)(nil)
+
+	_ Stmt = (*Block)(nil)
 )
 
 type DeclStmt struct {

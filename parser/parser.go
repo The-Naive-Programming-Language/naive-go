@@ -80,6 +80,8 @@ func (p *Parser) parseStatement() ast.Stmt {
 	} else if p.kind == token.KindIdent {
 		// look ahead
 		return p.branchAssignOrExpr()
+	} else if p.kind == token.KindLBrace {
+		return p.parseBlock()
 	}
 	return p.parseExprStmt()
 }
@@ -122,6 +124,16 @@ func (p *Parser) parseAssignStmt(ident string) ast.Stmt {
 		Ident: ident,
 		Expr:  v,
 	}
+}
+
+func (p *Parser) parseBlock() ast.Stmt {
+	blk := &ast.Block{}
+	p.discard()
+	for !p.match(token.KindRBrace) {
+		blk.Statements = append(blk.Statements, p.parseStatement())
+	}
+	p.consume(token.KindRBrace)
+	return blk
 }
 
 func (p *Parser) parseExprStmt() ast.Stmt {

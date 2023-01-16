@@ -28,6 +28,7 @@ const (
 	KindEOF
 	KindComment
 
+	//lint:ignore U1000 just for delimiting
 	literal_begin
 	KindInt
 	KindFloat
@@ -36,6 +37,7 @@ const (
 	KindIdent
 	literal_end
 
+	//lint:ignore U1000 just for delimiting
 	operator_begin
 	// Operators
 	KindAdd // +
@@ -46,6 +48,8 @@ const (
 
 	KindLParen // (
 	KindRParen // )
+	KindLBrace // {
+	KindRBrace // }
 
 	KindEq // ==
 	KindNe // /=
@@ -109,6 +113,10 @@ func (kind Kind) String() string {
 		return "LPAREN"
 	case KindRParen:
 		return "RPAREN"
+	case KindLBrace:
+		return "LBRACE"
+	case KindRBrace:
+		return "RBRACE"
 
 	case KindEq:
 		return "EQ"
