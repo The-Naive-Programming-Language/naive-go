@@ -37,6 +37,10 @@ func (p *Parser) addStmt(stmt ast.Stmt) {
 }
 
 func (p *Parser) parseStatement() ast.Stmt {
+	if p.kind == token.KindSemicolon {
+		p.discard()
+		return &ast.EmptyStmt{}
+	}
 	if p.kind == token.KindPrint {
 		return p.parsePrintStmt()
 	}

@@ -43,3 +43,13 @@ func TestParser_parseExpr(t *testing.T) {
 		})
 	})
 }
+
+func TestParser_parseStatement(t *testing.T) {
+	Convey("consecutive semicolons", t, func() {
+		p := New(nil, []byte(";;;;"))
+		s := p.parseStatement()
+		es, ok := s.(*ast.EmptyStmt)
+		So(ok, ShouldBeTrue)
+		So(es, ShouldNotBeNil)
+	})
+}
