@@ -105,7 +105,7 @@ type StringValue struct {
 
 func NewStringValue(text string) StringValue {
 	return StringValue{
-		Value: text,
+		Value: text[1 : len(text)-1],
 	}
 }
 
@@ -144,6 +144,18 @@ func (False) String() string {
 }
 
 func (False) exprNode() {}
+
+type Nil struct{}
+
+func (n Nil) Accept(v Visitor) any {
+	return v.VisitNil(n)
+}
+
+func (Nil) String() string {
+	return "nil"
+}
+
+func (Nil) exprNode() {}
 
 // UnaryExpr represents a node of unary expression.
 type UnaryExpr struct {
@@ -190,3 +202,17 @@ func (ge *GroupingExpr) String() string {
 }
 
 func (*GroupingExpr) exprNode() {}
+
+type Variable struct {
+	Ident string
+}
+
+func (ve *Variable) Accept(v Visitor) any {
+	return v.VisitVariable(ve)
+}
+
+func (ve *Variable) String() string {
+	return "VAR " + ve.Ident
+}
+
+func (*Variable) exprNode() {}

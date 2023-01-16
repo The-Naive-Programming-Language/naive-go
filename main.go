@@ -3,9 +3,12 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
-	"naive/visitor"
+	"io"
 	"os"
+
+	"naive/interpreter"
+	"naive/parser"
+	"naive/token"
 )
 
 func main() {
@@ -24,35 +27,34 @@ func printUsage() {
 }
 
 func runFile(path string) error {
-	src, err := ioutil.ReadFile(path)
+	f, err := os.OpenFile(path, os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
-	return run(path, src)
+	src, err := io.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+
+	interp := interpreter.New(path, src)
+	interp.Interpret()
+
+	return nil
 }
 
 func runPrompt() {
 	scan := bufio.NewScanner(os.Stdin)
 	scan.Split(bufio.ScanLines)
 
-	fmt.Printf("naive> ")
-	for scan.Scan() {
-		_ = run("<repl>", []byte(scan.Text()))
-		fmt.Print("naive> ")
+	interp := interpreter.Default()
+
+	for {
+		fmt.Printf("naive> ")
+		if !scan.Scan() {
+			break
+		}
+		p := parser.New(token.NewFile("<repl>"), []byte(scan.Text()))
+		interp.P = p
+		interp.Interpret()
 	}
-}
-
-func run(filename string, src []byte) error {
-	// p := parser.New(token.NewFile(filename), src)
-
-	// p.Parse()
-
-	// for _, stmt := range p.Statements {
-	// 	fmt.Println(stmt.String())
-	// }
-
-	interp := visitor.NewInterpreter(filename, src)
-	interp.Interpret()
-
-	return nil
 }

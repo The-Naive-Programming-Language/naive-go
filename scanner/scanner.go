@@ -85,9 +85,9 @@ func (s *Scanner) Scan() (loc token.Location, kind token.Kind, text string) {
 		case ')':
 			kind = token.KindRParen
 		case '=':
-			kind, text = token.KindInvalid, "="
+			kind = token.KindAssign
 			if s.expectNext('=') {
-				kind, text = token.KindEq, ""
+				kind = token.KindEq
 			}
 		case '>':
 			kind = token.KindGt

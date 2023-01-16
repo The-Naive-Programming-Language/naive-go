@@ -9,6 +9,8 @@ var kindsByText = map[string]Kind{
 	"or":    KindOr,
 	"not":   KindNot,
 
+	"let": KindLet,
+
 	"print": KindPrint,
 }
 
@@ -52,6 +54,8 @@ const (
 	KindLt // <
 	KindLe // <=
 
+	KindAssign // =
+
 	KindSemicolon // ;
 	KindComma     // ,
 	operator_end
@@ -63,6 +67,8 @@ const (
 	KindAnd   // and
 	KindOr    // or
 	KindNot   // not
+
+	KindLet // let
 
 	KindPrint // print
 	keyword_end
