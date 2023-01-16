@@ -14,6 +14,7 @@ type Stmt interface {
 var (
 	_ Stmt = (*ExprStmt)(nil)
 	_ Stmt = (*PrintStmt)(nil)
+	_ Stmt = (*EmptyStmt)(nil)
 )
 
 type ExprStmt struct {
@@ -61,3 +62,15 @@ func (ps *PrintStmt) String() string {
 }
 
 func (PrintStmt) stmtNode() {}
+
+type EmptyStmt struct{}
+
+func (EmptyStmt) Accept(v Visitor) any {
+	return v.VisitEmptyStmt(&EmptyStmt{})
+}
+
+func (EmptyStmt) String() string {
+	return ";"
+}
+
+func (EmptyStmt) stmtNode() {}

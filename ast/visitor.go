@@ -15,4 +15,5 @@ type Visitor interface {
 
 	VisitExprStmt(stmt *ExprStmt) any
 	VisitPrintStmt(stmt *PrintStmt) any
+	VisitEmptyStmt(stmt *EmptyStmt) any
 }

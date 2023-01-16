@@ -384,3 +384,7 @@ func (i *Interpreter) VisitPrintStmt(stmt *ast.PrintStmt) any {
 	}
 	return nil
 }
+
+func (i *Interpreter) VisitEmptyStmt(stmt *ast.EmptyStmt) any {
+	return nil
+}
