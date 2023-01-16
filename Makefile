@@ -6,21 +6,25 @@ SRC := $(shell find . -type f -name '*.go')
 
 ENVS := GOOS=linux GOARCH=amd64
 
-.PHONY: all lint fmt test run
+.PHONY: all run ci checkfmt fmt lint test
 
-all: lint fmt test
+all: fmt lint test
 	[[ ! -d build ]] && mkdir build || true
 	go build -o build/naive .
+
+ci: checkfmt lint test
+
+checkfmt:
+	$(GOFMT) -d $(SRC) || echo "use 'make fmt' to fix formatting issues"
+
+fmt:
+	$(GOFMT) -s -l -w $(SRC)
 
 lint:
 	# ignore the return code
 	$(LINTER) ./... || true
 
-fmt:
-	$(GOFMT) -s -l -w $(SRC)
-
 test:
-	# TODO
 	$(ENVS) go test -coverprofile=/tmp/test.cov ./...
 
 run: all
