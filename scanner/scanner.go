@@ -84,6 +84,10 @@ func (s *Scanner) Scan() (loc token.Location, kind token.Kind, text string) {
 			kind = token.KindLParen
 		case ')':
 			kind = token.KindRParen
+		case '{':
+			kind = token.KindLBrace
+		case '}':
+			kind = token.KindRBrace
 		case '=':
 			kind = token.KindAssign
 			if s.expectNext('=') {
