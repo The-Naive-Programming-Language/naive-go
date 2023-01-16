@@ -53,3 +53,16 @@ func TestParser_parseStatement(t *testing.T) {
 		So(es, ShouldNotBeNil)
 	})
 }
+
+func TestParser_parseDeclStmt(t *testing.T) {
+	Convey("valid", t, func() {
+		Convey("w/o init", func() {
+			p := New(nil, []byte("let a;"))
+			s := p.parseDeclStmt()
+			ds, ok := s.(*ast.DeclStmt)
+			So(ok, ShouldBeTrue)
+			So(ds.Ident, ShouldEqual, "a")
+			So(ds.Init, ShouldHaveSameTypeAs, ast.Nil{})
+		})
+	})
+}

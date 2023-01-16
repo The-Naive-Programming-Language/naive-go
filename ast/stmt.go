@@ -12,10 +12,42 @@ type Stmt interface {
 }
 
 var (
+	_ Stmt = (*DeclStmt)(nil)
+	_ Stmt = (*AssignStmt)(nil)
 	_ Stmt = (*ExprStmt)(nil)
 	_ Stmt = (*PrintStmt)(nil)
 	_ Stmt = (*EmptyStmt)(nil)
 )
+
+type DeclStmt struct {
+	Ident string
+	Init  Expr
+}
+
+func (ds *DeclStmt) Accept(v Visitor) any {
+	return v.VisitDeclStmt(ds)
+}
+
+func (ds *DeclStmt) String() string {
+	return fmt.Sprintf("LET ident=%s init=%s", ds.Ident, ds.Init.String())
+}
+
+func (*DeclStmt) stmtNode() {}
+
+type AssignStmt struct {
+	Ident string
+	Expr  Expr
+}
+
+func (as *AssignStmt) Accept(v Visitor) any {
+	return v.VisitAssignStmt(as)
+}
+
+func (as *AssignStmt) String() string {
+	return fmt.Sprintf("ASSIGN ident=%s expr=%s", as.Ident, as.Expr.String())
+}
+
+func (*AssignStmt) stmtNode() {}
 
 type ExprStmt struct {
 	Expr Expr

@@ -1,4 +1,4 @@
-package visitor
+package interpreter
 
 import (
 	"fmt"
@@ -12,23 +12,53 @@ import (
 
 var _ ast.Visitor = (*Interpreter)(nil)
 
-type Interpreter struct {
-	p *parser.Parser
+type Env map[string]any
+
+func newEnv() Env {
+	return make(Env)
 }
 
-func NewInterpreter(filename string, src []byte) *Interpreter {
+func (e Env) Define(k string, v any) (shadow bool) {
+	_, shadow = e[k]
+	e[k] = v
+	return
+}
+
+func (e Env) Lookup(k string) (v any, present bool) {
+	v, present = e[k]
+	return v, present
+}
+
+func (e Env) Assign(k string, v any) (create bool) {
+	_, present := e[k]
+	e[k] = v
+	return !present
+}
+
+type Interpreter struct {
+	P *parser.Parser
+
+	env Env
+}
+
+func New(filename string, src []byte) *Interpreter {
 	return &Interpreter{
-		p: parser.New(
+		P: parser.New(
 			token.NewFile(filename),
 			src,
 		),
+		env: newEnv(),
 	}
 }
 
+func Default() *Interpreter {
+	return New("", nil)
+}
+
 func (i *Interpreter) Interpret() {
-	i.p.Parse()
-	fmt.Println(i.p.Statements)
-	for _, stmt := range i.p.Statements {
+	i.P.Parse()
+	fmt.Println(i.P.Statements)
+	for _, stmt := range i.P.Statements {
 		stmt.Accept(i)
 	}
 }
@@ -55,6 +85,18 @@ func (Interpreter) VisitTrue(expr ast.True) any {
 
 func (Interpreter) VisitFalse(expr ast.False) any {
 	return false
+}
+
+func (*Interpreter) VisitNil(_ ast.Nil) any {
+	return nil
+}
+
+func (i *Interpreter) VisitVariable(expr *ast.Variable) any {
+	v, ok := i.env.Lookup(expr.Ident)
+	if !ok {
+		panic("undefined variable: " + expr.Ident)
+	}
+	return v
 }
 
 func (i *Interpreter) VisitBinaryExpr(expr *ast.BinaryExpr) any {
@@ -363,6 +405,18 @@ func (i *Interpreter) VisitGroupingExpr(expr *ast.GroupingExpr) any {
 	return expr.Expr.Accept(i)
 }
 
+func (i *Interpreter) VisitDeclStmt(stmt *ast.DeclStmt) any {
+	init := stmt.Init.Accept(i)
+	i.env.Define(stmt.Ident, init)
+	return nil
+}
+
+func (i *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) any {
+	v := stmt.Expr.Accept(i)
+	i.env.Assign(stmt.Ident, v)
+	return nil
+}
+
 func (i *Interpreter) VisitExprStmt(stmt *ast.ExprStmt) any {
 	stmt.Expr.Accept(i)
 	return nil
@@ -380,6 +434,7 @@ func (i *Interpreter) VisitPrintStmt(stmt *ast.PrintStmt) any {
 		if !strings.HasSuffix(format, "\n") {
 			format += "\n"
 		}
+		format = strings.ReplaceAll(format, "{}", "%v")
 		fmt.Printf(format, args...)
 	}
 	return nil
