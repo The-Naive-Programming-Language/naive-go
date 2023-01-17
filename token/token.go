@@ -9,7 +9,10 @@ var kindsByText = map[string]Kind{
 	"or":    KindOr,
 	"not":   KindNot,
 
-	"let": KindLet,
+	"let":   KindLet,
+	"if":    KindIf,
+	"else":  KindElse,
+	"while": KindWhile,
 
 	"print": KindPrint,
 }
@@ -72,7 +75,10 @@ const (
 	KindOr    // or
 	KindNot   // not
 
-	KindLet // let
+	KindLet   // let
+	KindIf    // if
+	KindElse  // else
+	KindWhile // while
 
 	KindPrint // print
 	keyword_end
@@ -146,6 +152,15 @@ func (kind Kind) String() string {
 		return "OR"
 	case KindNot:
 		return "NOT"
+
+	case KindLet:
+		return "LET"
+	case KindIf:
+		return "IF"
+	case KindElse:
+		return "ELSE"
+	case KindWhile:
+		return "WHILE"
 
 	case KindPrint:
 		return "PRINT"
