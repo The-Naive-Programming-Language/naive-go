@@ -51,6 +51,38 @@ func (as *AssignStmt) String() string {
 
 func (*AssignStmt) stmtNode() {}
 
+type IfElseStmt struct {
+	Cond Expr
+	Then Stmt
+	Else Stmt
+}
+
+func (ie *IfElseStmt) Accept(v Visitor) any {
+	return v.VisitIfElseStmt(ie)
+}
+
+func (ie *IfElseStmt) String() string {
+	return fmt.Sprintf("if %s %s %s", ie.Cond, ie.Then, ie.Else)
+}
+
+func (ie *IfElseStmt) stmtNode() {}
+func (ie *IfElseStmt) exprNode() {}
+
+type WhileStmt struct {
+	Cond Expr
+	Body Stmt
+}
+
+func (ws *WhileStmt) Accept(v Visitor) any {
+	return v.VisitWhileStmt(ws)
+}
+
+func (ws *WhileStmt) String() string {
+	return fmt.Sprintf("while %s %s", ws.Cond, ws.Body)
+}
+
+func (ws *WhileStmt) stmtNode() {}
+
 type ExprStmt struct {
 	Expr Expr
 }

@@ -365,17 +365,18 @@ func doLogicalOr(lhs, rhs any) any {
 	return rhs
 }
 
-func isTruthy(x0 any) bool {
-	switch x := x0.(type) {
-	case bool:
-		return x
-	default:
-		return true
-	}
+func isTruthy(x any) bool {
+	return !isFalsy(x)
 }
 
-func isFalsy(x any) bool {
-	return !isTruthy(x)
+func isFalsy(x0 any) bool {
+	switch x := x0.(type) {
+	case bool:
+		return !x
+	case nil:
+		return true
+	}
+	return false
 }
 
 func (i *Interpreter) VisitUnaryExpr(expr *ast.UnaryExpr) any {
@@ -439,6 +440,20 @@ func (i *Interpreter) VisitAssignStmt(stmt *ast.AssignStmt) any {
 	v := stmt.Expr.Accept(i)
 	if !i.env.Assign(stmt.Ident, v) {
 		panic("assignment to undefined variable " + stmt.Ident)
+	}
+	return nil
+}
+
+func (i *Interpreter) VisitIfElseStmt(stmt *ast.IfElseStmt) any {
+	if isTruthy(stmt.Cond.Accept(i)) {
+		return stmt.Then.Accept(i)
+	}
+	return stmt.Else.Accept(i)
+}
+
+func (i *Interpreter) VisitWhileStmt(stmt *ast.WhileStmt) any {
+	for isTruthy(stmt.Cond.Accept(i)) {
+		stmt.Body.Accept(i)
 	}
 	return nil
 }

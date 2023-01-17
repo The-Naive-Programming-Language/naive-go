@@ -18,6 +18,8 @@ type Visitor interface {
 
 	VisitDeclStmt(stmt *DeclStmt) any
 	VisitAssignStmt(stmt *AssignStmt) any
+	VisitIfElseStmt(stmt *IfElseStmt) any
+	VisitWhileStmt(stmt *WhileStmt) any
 	VisitExprStmt(stmt *ExprStmt) any
 	VisitPrintStmt(stmt *PrintStmt) any
 	VisitEmptyStmt(stmt *EmptyStmt) any

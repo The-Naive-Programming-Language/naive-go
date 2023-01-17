@@ -82,6 +82,12 @@ func (p *Parser) parseStatement() ast.Stmt {
 		return p.branchAssignOrExpr()
 	} else if p.kind == token.KindLBrace {
 		return p.parseBlock()
+	} else if p.kind == token.KindIf {
+		return p.parseIfElse()
+	} else if p.kind == token.KindElse {
+		panic("dangling else")
+	} else if p.kind == token.KindWhile {
+		return p.parseWhile()
 	}
 	return p.parseExprStmt()
 }
@@ -134,6 +140,38 @@ func (p *Parser) parseBlock() ast.Stmt {
 	}
 	p.consume(token.KindRBrace)
 	return blk
+}
+
+func (p *Parser) parseIfElse() ast.Stmt {
+	p.discard()
+	cond := p.parseExpr()
+	thenArm := p.parseBlock()
+	var elseArm ast.Stmt = ast.EmptyStmt{}
+	if p.match(token.KindElse) {
+		p.discard()
+		if p.match(token.KindIf) {
+			elseArm = p.parseIfElse()
+		} else if p.match(token.KindLBrace) {
+			elseArm = p.parseBlock()
+		} else {
+			panic("incomplete else")
+		}
+	}
+	return &ast.IfElseStmt{
+		Cond: cond,
+		Then: thenArm,
+		Else: elseArm,
+	}
+}
+
+func (p *Parser) parseWhile() ast.Stmt {
+	p.discard()
+	cond := p.parseExpr()
+	body := p.parseBlock()
+	return &ast.WhileStmt{
+		Cond: cond,
+		Body: body,
+	}
 }
 
 func (p *Parser) parseExprStmt() ast.Stmt {
