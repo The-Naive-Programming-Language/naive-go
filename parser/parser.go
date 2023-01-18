@@ -75,8 +75,6 @@ func (p *Parser) parseStatement() ast.Stmt {
 		return &ast.EmptyStmt{}
 	} else if p.kind == token.KindLet {
 		return p.parseDeclStmt()
-	} else if p.kind == token.KindPrint {
-		return p.parsePrintStmt()
 	} else if p.kind == token.KindIdent {
 		// look ahead
 		return p.branchAssignOrExpr()
@@ -88,6 +86,10 @@ func (p *Parser) parseStatement() ast.Stmt {
 		panic("dangling else")
 	} else if p.kind == token.KindWhile {
 		return p.parseWhile()
+	} else if p.kind == token.KindFn {
+		return p.branchNamedFuncOrLambda()
+	} else if p.kind == token.KindReturn {
+		return p.parseReturn()
 	}
 	return p.parseExprStmt()
 }
@@ -105,7 +107,7 @@ func (p *Parser) parseDeclStmt() ast.Stmt {
 		init = p.parseExpr()
 	}
 	p.consume(token.KindSemicolon)
-	return &ast.DeclStmt{
+	return &ast.LetStmt{
 		Ident: ident,
 		Init:  init,
 	}
@@ -133,10 +135,13 @@ func (p *Parser) parseAssignStmt(ident string) ast.Stmt {
 }
 
 func (p *Parser) parseBlock() ast.Stmt {
+	p.skipComments()
+	p.consume(token.KindLBrace)
+	p.skipComments()
 	blk := &ast.Block{}
-	p.discard()
 	for !p.match(token.KindRBrace) {
 		blk.Statements = append(blk.Statements, p.parseStatement())
+		p.skipComments()
 	}
 	p.consume(token.KindRBrace)
 	return blk
@@ -174,6 +179,63 @@ func (p *Parser) parseWhile() ast.Stmt {
 	}
 }
 
+func (p *Parser) branchNamedFuncOrLambda() ast.Stmt {
+	p.advance()
+	if p.match(token.KindIdent) {
+		p.goBack()
+		return p.parseFunction()
+	}
+	p.goBack()
+	return p.parseExprStmt()
+}
+
+func (p *Parser) parseFunction() ast.Stmt {
+	p.discard()
+	if !p.match(token.KindIdent) {
+		panic(fmt.Sprintf("when parsing function definition: want %s, got %s", token.KindIdent, p.kind))
+	}
+	name := p.text
+	p.discard()
+	p.consume(token.KindLParen)
+	params := p.parseIdentList()
+	p.consume(token.KindRParen)
+	body := p.parseBlock()
+	return &ast.FnStmt{
+		Ident:  name,
+		Params: params,
+		Body:   body,
+	}
+}
+
+func (p *Parser) parseIdentList() (ans []string) {
+	if p.match(token.KindRParen) {
+		return
+	}
+	if !p.match(token.KindIdent) {
+		panic(fmt.Sprintf("when parsing identifier list: want %s, got %s", token.KindIdent, p.kind))
+	}
+	ans = append(ans, p.text)
+	p.discard()
+	for !p.match(token.KindRParen) {
+		p.consume(token.KindComma)
+		if !p.match(token.KindIdent) {
+			panic(fmt.Sprintf("when parsing identifier list: want %s, got %s", token.KindIdent, p.kind))
+		}
+		ans = append(ans, p.text)
+		p.discard()
+	}
+	return
+}
+
+func (p *Parser) parseReturn() ast.Stmt {
+	p.discard()
+	ret := p.parseExpr()
+	p.consume(token.KindSemicolon)
+	return &ast.ReturnStmt{
+		RetVal: ret,
+	}
+}
+
 func (p *Parser) parseExprStmt() ast.Stmt {
 	s := &ast.ExprStmt{
 		Expr: p.parseExpr(),
@@ -183,7 +245,35 @@ func (p *Parser) parseExprStmt() ast.Stmt {
 }
 
 func (p *Parser) parseExpr() (ans ast.Expr) {
-	return p.parseLogical()
+	return p.parseLambda()
+}
+
+func (p *Parser) parseLambda() (ans ast.Expr) {
+	if !p.match(token.KindFn) {
+		return p.parseLogical()
+	}
+	p.consume(token.KindFn)
+	p.consume(token.KindLParen)
+	params := p.parseIdentList()
+	p.consume(token.KindRParen)
+	var body ast.Stmt
+	if p.match(token.KindLtRArrow) {
+		p.discard()
+		e := p.parseExpr()
+		body = &ast.Block{
+			Statements: []ast.Stmt{
+				&ast.ReturnStmt{
+					RetVal: e,
+				},
+			},
+		}
+	} else {
+		body = p.parseBlock()
+	}
+	return &ast.Lambda{
+		Params: params,
+		Body:   body,
+	}
 }
 
 func (p *Parser) parseLogical() ast.Expr {
@@ -265,7 +355,7 @@ func (p *Parser) parseFactor() (ans ast.Expr) {
 
 func (p *Parser) parseUnary() (ans ast.Expr) {
 	if !p.matchAny(token.KindNot, token.KindSub) {
-		return p.parsePrimary()
+		return p.parseCall()
 	}
 	op := p.kind
 	p.discard()
@@ -273,6 +363,41 @@ func (p *Parser) parseUnary() (ans ast.Expr) {
 		X:  p.parseUnary(),
 		Op: op,
 	}
+}
+
+func (p *Parser) parseCall() ast.Expr {
+	if !p.match(token.KindIdent) {
+		return p.parsePrimary()
+	}
+	ident := p.text
+	p.advance()
+	if p.match(token.KindLParen) {
+		p.discard()
+		args := p.parseExprList()
+		p.consume(token.KindRParen)
+		return &ast.CallExpr{
+			Callee: ident,
+			Args:   args,
+		}
+	}
+	// If current token is not '(', leave it unchanged and return a Variable.
+	// NOTE: although assignment statements also start with IDENT's, call sites
+	// of parseCall can eliminate the possibility.
+	return &ast.Variable{
+		Ident: ident,
+	}
+}
+
+func (p *Parser) parseExprList() (ans []ast.Expr) {
+	if p.match(token.KindRParen) {
+		return
+	}
+	ans = append(ans, p.parseExpr())
+	for !p.match(token.KindRParen) {
+		p.consume(token.KindComma)
+		ans = append(ans, p.parseExpr())
+	}
+	return
 }
 
 func (p *Parser) parsePrimary() (ans ast.Expr) {
@@ -310,24 +435,6 @@ func (p *Parser) parseGroupingExpr() (ans *ast.GroupingExpr) {
 	return &ast.GroupingExpr{
 		Expr: e,
 	}
-}
-
-func (p *Parser) parsePrintStmt() ast.Stmt {
-	p.discard()
-	p.consume(token.KindLParen)
-	if p.kind != token.KindString {
-		panic("expect token STRING, actual: " + p.kind.String())
-	}
-	s := &ast.PrintStmt{
-		Format: p.text[1 : len(p.text)-1],
-	}
-	p.discard()
-	for p.match(token.KindComma) {
-		p.discard()
-		s.Args = append(s.Args, p.parseExpr())
-	}
-	p.consumeMany(token.KindRParen, token.KindSemicolon)
-	return s
 }
 
 func (p *Parser) nextToken() {
@@ -376,4 +483,10 @@ func (p *Parser) advance() {
 func (p *Parser) goBack() {
 	p.lookAhead.push(p.kind, p.text)
 	p.kind, p.text = p.prevKind, p.prevText
+}
+
+func (p *Parser) skipComments() {
+	for p.match(token.KindComment) {
+		p.discard()
+	}
 }

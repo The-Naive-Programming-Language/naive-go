@@ -12,18 +12,18 @@ func TestInterpreter_VisitBlock(t *testing.T) {
 
 {
     let a = 3.14;
-    print("{}", a);
+    println(a);
 
     {
-        print("{}", a);
+        println(a);
         let a = 2.718;
-        print("{}", a);
+        println(a);
     }
 
-    print("{}", a);
+    println(a);
 }
 
-print("{}", a);`
+println(a);`
 		interp := New("", []byte(src))
 		interp.Interpret()
 	})

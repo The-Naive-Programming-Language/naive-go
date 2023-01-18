@@ -238,3 +238,37 @@ func (blk *Block) String() string {
 func (*Block) exprNode() {}
 
 func (*Block) stmtNode() {}
+
+type CallExpr struct {
+	Callee string
+	Args   []Expr
+}
+
+func (call *CallExpr) Accept(v Visitor) any {
+	return v.VisitCallExpr(call)
+}
+
+func (call *CallExpr) String() string {
+	ss := make([]string, 0, len(call.Args))
+	for _, a := range call.Args {
+		ss = append(ss, a.String())
+	}
+	return call.Callee + "(" + strings.Join(ss, ", ") + ")"
+}
+
+func (call *CallExpr) exprNode() {}
+
+type Lambda struct {
+	Params []string
+	Body   Stmt
+}
+
+func (lmb *Lambda) Accept(v Visitor) any {
+	return v.VisitLambda(lmb)
+}
+
+func (lmb *Lambda) String() string {
+	return "fn (" + strings.Join(lmb.Params, ", ") + ") " + lmb.Body.String()
+}
+
+func (lmb *Lambda) exprNode() {}

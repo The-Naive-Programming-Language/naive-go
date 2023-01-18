@@ -59,7 +59,7 @@ func TestParser_parseDeclStmt(t *testing.T) {
 		Convey("w/o init", func() {
 			p := New(nil, []byte("let a;"))
 			s := p.parseDeclStmt()
-			ds, ok := s.(*ast.DeclStmt)
+			ds, ok := s.(*ast.LetStmt)
 			So(ok, ShouldBeTrue)
 			So(ds.Ident, ShouldEqual, "a")
 			So(ds.Init, ShouldHaveSameTypeAs, ast.Nil{})

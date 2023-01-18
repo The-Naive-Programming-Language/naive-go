@@ -9,12 +9,12 @@ var kindsByText = map[string]Kind{
 	"or":    KindOr,
 	"not":   KindNot,
 
-	"let":   KindLet,
-	"if":    KindIf,
-	"else":  KindElse,
-	"while": KindWhile,
-
-	"print": KindPrint,
+	"let":    KindLet,
+	"if":     KindIf,
+	"else":   KindElse,
+	"while":  KindWhile,
+	"fn":     KindFn,
+	"return": KindReturn,
 }
 
 func Lookup(ident string) Kind {
@@ -63,6 +63,8 @@ const (
 
 	KindAssign // =
 
+	KindLtRArrow // ->
+
 	KindSemicolon // ;
 	KindComma     // ,
 	operator_end
@@ -75,12 +77,13 @@ const (
 	KindOr    // or
 	KindNot   // not
 
-	KindLet   // let
-	KindIf    // if
-	KindElse  // else
-	KindWhile // while
+	KindLet    // let
+	KindIf     // if
+	KindElse   // else
+	KindWhile  // while
+	KindFn     // fn
+	KindReturn // return
 
-	KindPrint // print
 	keyword_end
 )
 
@@ -161,9 +164,10 @@ func (kind Kind) String() string {
 		return "ELSE"
 	case KindWhile:
 		return "WHILE"
-
-	case KindPrint:
-		return "PRINT"
+	case KindFn:
+		return "FN"
+	case KindReturn:
+		return "RETURN"
 
 	default:
 		panic(fmt.Sprint("unknown token kind value: ", int(kind)))

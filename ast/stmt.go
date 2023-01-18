@@ -12,29 +12,62 @@ type Stmt interface {
 }
 
 var (
-	_ Stmt = (*DeclStmt)(nil)
+	_ Stmt = (*LetStmt)(nil)
+	_ Stmt = (*IfElseStmt)(nil)
+	_ Stmt = (*WhileStmt)(nil)
+	_ Stmt = (*FnStmt)(nil)
+	_ Stmt = (*ReturnStmt)(nil)
 	_ Stmt = (*AssignStmt)(nil)
 	_ Stmt = (*ExprStmt)(nil)
-	_ Stmt = (*PrintStmt)(nil)
 	_ Stmt = (*EmptyStmt)(nil)
 
 	_ Stmt = (*Block)(nil)
 )
 
-type DeclStmt struct {
+type LetStmt struct {
 	Ident string
 	Init  Expr
 }
 
-func (ds *DeclStmt) Accept(v Visitor) any {
-	return v.VisitDeclStmt(ds)
+func (ds *LetStmt) Accept(v Visitor) any {
+	return v.VisitLetStmt(ds)
 }
 
-func (ds *DeclStmt) String() string {
+func (ds *LetStmt) String() string {
 	return fmt.Sprintf("LET ident=%s init=%s", ds.Ident, ds.Init.String())
 }
 
-func (*DeclStmt) stmtNode() {}
+func (*LetStmt) stmtNode() {}
+
+type FnStmt struct {
+	Ident  string
+	Params []string
+	Body   Stmt
+}
+
+func (fs *FnStmt) Accept(v Visitor) any {
+	return v.VisitFnStmt(fs)
+}
+
+func (fs *FnStmt) String() string {
+	return fmt.Sprintf("fn %s (%s) %s", fs.Ident, strings.Join(fs.Params, ", "), fs.Body)
+}
+
+func (*FnStmt) stmtNode() {}
+
+type ReturnStmt struct {
+	RetVal Expr
+}
+
+func (rs *ReturnStmt) Accept(v Visitor) any {
+	return v.VisitReturnStmt(rs)
+}
+
+func (rs *ReturnStmt) String() string {
+	return fmt.Sprintf("return %s;", rs.RetVal)
+}
+
+func (*ReturnStmt) stmtNode() {}
 
 type AssignStmt struct {
 	Ident string
@@ -110,24 +143,6 @@ func (el ExprList) String() string {
 func (el ExprList) Empty() bool {
 	return len(el) == 0
 }
-
-type PrintStmt struct {
-	Format string
-	Args   ExprList
-}
-
-func (ps *PrintStmt) Accept(v Visitor) any {
-	return v.VisitPrintStmt(ps)
-}
-
-func (ps *PrintStmt) String() string {
-	if ps.Args.Empty() {
-		return fmt.Sprintf("print(%s)", ps.Format)
-	}
-	return fmt.Sprintf("PRINT format=%q args=(%s)", ps.Format, ps.Args.String())
-}
-
-func (PrintStmt) stmtNode() {}
 
 type EmptyStmt struct{}
 
