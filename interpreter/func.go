@@ -80,7 +80,7 @@ func (BuiltinFormat) Call(args []any, i *Interpreter) any {
 		panic("type mismatch: 1st argument of function format shall be of type 'String'")
 	}
 	f = strings.ReplaceAll(f, "{}", "%v")
-	return fmt.Sprintf(f, args...)
+	return fmt.Sprintf(f, args[1:]...)
 }
 
 type BuiltinGetLine struct{}
