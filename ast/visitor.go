@@ -15,13 +15,16 @@ type Visitor interface {
 	VisitBinaryExpr(expr *BinaryExpr) any
 	VisitUnaryExpr(expr *UnaryExpr) any
 	VisitGroupingExpr(expr *GroupingExpr) any
+	VisitCallExpr(expr *CallExpr) any
+	VisitLambda(expr *Lambda) any
 
-	VisitDeclStmt(stmt *DeclStmt) any
+	VisitLetStmt(stmt *LetStmt) any
 	VisitAssignStmt(stmt *AssignStmt) any
 	VisitIfElseStmt(stmt *IfElseStmt) any
 	VisitWhileStmt(stmt *WhileStmt) any
+	VisitFnStmt(stmt *FnStmt) any
+	VisitReturnStmt(stmt *ReturnStmt) any
 	VisitExprStmt(stmt *ExprStmt) any
-	VisitPrintStmt(stmt *PrintStmt) any
 	VisitEmptyStmt(stmt *EmptyStmt) any
 
 	VisitBlock(blk *Block) any

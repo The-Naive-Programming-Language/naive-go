@@ -71,6 +71,9 @@ func (s *Scanner) Scan() (loc token.Location, kind token.Kind, text string) {
 			kind = token.KindAdd
 		case '-':
 			kind = token.KindSub
+			if s.expectNext('>') {
+				kind = token.KindLtRArrow
+			}
 		case '*':
 			kind = token.KindMul
 		case '/':

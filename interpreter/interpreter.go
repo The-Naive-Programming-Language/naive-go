@@ -1,9 +1,7 @@
 package interpreter
 
 import (
-	"fmt"
 	"math/big"
-	"strings"
 
 	"naive/ast"
 	"naive/parser"
@@ -66,13 +64,22 @@ type Interpreter struct {
 }
 
 func New(filename string, src []byte) *Interpreter {
-	return &Interpreter{
+	i := &Interpreter{
 		P: parser.New(
 			token.NewFile(filename),
 			src,
 		),
 		env: newGlobalEnv(),
 	}
+	i.setupBuiltins()
+	return i
+}
+
+func (i *Interpreter) setupBuiltins() {
+	i.env.Define("print", BuiltinPrint{})
+	i.env.Define("println", BuiltinPrintLn{})
+	i.env.Define("format", BuiltinFormat{})
+	i.env.Define("getline", BuiltinGetLine{})
 }
 
 func Default() *Interpreter {
@@ -430,7 +437,7 @@ func (i *Interpreter) VisitGroupingExpr(expr *ast.GroupingExpr) any {
 	return expr.Expr.Accept(i)
 }
 
-func (i *Interpreter) VisitDeclStmt(stmt *ast.DeclStmt) any {
+func (i *Interpreter) VisitLetStmt(stmt *ast.LetStmt) any {
 	init := stmt.Init.Accept(i)
 	i.env.Define(stmt.Ident, init)
 	return nil
@@ -458,26 +465,56 @@ func (i *Interpreter) VisitWhileStmt(stmt *ast.WhileStmt) any {
 	return nil
 }
 
-func (i *Interpreter) VisitExprStmt(stmt *ast.ExprStmt) any {
-	stmt.Expr.Accept(i)
+func (i *Interpreter) VisitFnStmt(stmt *ast.FnStmt) any {
+	i.env.Define(stmt.Ident, &Func{
+		Name:   stmt.Ident,
+		Params: stmt.Params,
+		Body:   stmt.Body,
+		Env:    i.env,
+	})
+	i.env = newLocalEnv(i.env)
 	return nil
 }
 
-func (i *Interpreter) VisitPrintStmt(stmt *ast.PrintStmt) any {
-	args := make([]interface{}, 0, len(stmt.Args))
-	for _, a := range stmt.Args {
+type Return struct {
+	RetVal any
+}
+
+func (i *Interpreter) VisitReturnStmt(stmt *ast.ReturnStmt) any {
+	ret := stmt.RetVal.Accept(i)
+	// TODO: better solutions?
+	panic(&Return{RetVal: ret})
+}
+
+func (i *Interpreter) VisitCallExpr(expr *ast.CallExpr) any {
+	args := make([]any, 0, len(expr.Args))
+	for _, a := range expr.Args {
 		args = append(args, a.Accept(i))
 	}
-	if stmt.Format == "" {
-		fmt.Println(args...)
-	} else {
-		format := stmt.Format
-		if !strings.HasSuffix(format, "\n") {
-			format += "\n"
-		}
-		format = strings.ReplaceAll(format, "{}", "%v")
-		fmt.Printf(format, args...)
+	v, ok := i.env.Lookup(expr.Callee)
+	if !ok {
+		panic("undefined callable object '" + expr.Callee + "'")
 	}
+	f, ok := v.(Callable)
+	if !ok {
+		panic("calling non-callable object")
+	}
+	return f.Call(args, i)
+}
+
+func (i *Interpreter) VisitLambda(expr *ast.Lambda) any {
+	ans := &Func{
+		Name:   "<anonymous>",
+		Params: expr.Params,
+		Body:   expr.Body,
+		Env:    i.env,
+	}
+	i.env = newLocalEnv(i.env)
+	return ans
+}
+
+func (i *Interpreter) VisitExprStmt(stmt *ast.ExprStmt) any {
+	stmt.Expr.Accept(i)
 	return nil
 }
 

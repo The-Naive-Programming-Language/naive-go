@@ -5,11 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch REPL",
+            "name": "Launch Naive",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${fileDirname}"
+            "program": "${fileDirname}",
+            "args": [
+                "/tmp/lexical_scoping.nv"
+            ]
         }
     ]
 }
